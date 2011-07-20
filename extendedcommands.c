@@ -77,6 +77,21 @@ int install_zip(const char* packagefilepath)
     return 0;
 }
 
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+int show_sdcard_selection_menu()
+{
+    static char* headers[] = { "Choose internal or external SD card",
+                               "",
+                               NULL };
+
+    static char* list[] = { "Internal SD card",
+                            "External SD card",
+                            NULL };
+    int chosen_item = get_menu_selection(headers, list, 0, 0);
+    return (chosen_item < 2) ? chosen_item : -1;
+}
+#endif
+
 char* INSTALL_MENU_ITEMS[] = {  "choose zip from sdcard",
                                 "apply /sdcard/update.zip",
                                 "toggle signature verification",

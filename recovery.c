@@ -62,7 +62,9 @@ static const char *LAST_LOG_FILE = "/cache/recovery/last_log";
 static const char *SDCARD_ROOT = "/sdcard";
 static int allow_display_toggle = 1;
 static int poweroff = 0;
+#ifndef BOARD_HAS_SDCARD_INTERNAL
 static const char *SDCARD_PACKAGE_FILE = "/sdcard/update.zip";
+#endif
 static const char *TEMPORARY_LOG_FILE = "/tmp/recovery.log";
 static const char *SIDELOAD_TEMP_DIR = "/tmp/sideload";
 
@@ -692,6 +694,11 @@ wipe_data(int confirm) {
 static void
 prompt_and_wait() {
     char** headers = prepend_title((const char**)MENU_HEADERS);
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+    char sdcard_package_file[PATH_MAX];
+    char confirm[PATH_MAX];
+    int chosen_sdcard = -1;
+#endif
 
     for (;;) {
         finish_recovery(NULL);
@@ -727,10 +734,32 @@ prompt_and_wait() {
                 break;
 
             case ITEM_APPLY_SDCARD:
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+                chosen_sdcard = show_sdcard_selection_menu();
+                if (chosen_sdcard > -1)
+                {
+                    switch (chosen_sdcard) {
+                        case 0:
+                            sprintf(sdcard_package_file, "/sdcard/update.zip");
+                            break;
+                        case 1:
+                            sprintf(sdcard_package_file, "/sdcard-ext/update.zip");
+                            break;
+                    }
+                    sprintf(confirm, "Yes - Install %s", sdcard_package_file);
+                }
+                else break;
+                if (confirm_selection("Confirm install?", confirm))
+#else
                 if (confirm_selection("Confirm install?", "Yes - Install /sdcard/update.zip"))
+#endif
                 {
                     ui_print("\n-- Install from sdcard...\n");
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+                    int status = install_package(sdcard_package_file);
+#else
                     int status = install_package(SDCARD_PACKAGE_FILE);
+#endif
                     if (status != INSTALL_SUCCESS) {
                         ui_set_background(BACKGROUND_ICON_ERROR);
                         ui_print("Installation aborted.\n");

@@ -11,13 +11,19 @@ on init
 
     mkdir /boot
     mkdir /sdcard
+    mkdir /sdcard-ext
     mkdir /sd-ext
     mkdir /datadata
     mkdir /emmc
     mkdir /system
     mkdir /data
+    mkdir /osh
+    mkdir /preinstall
+    mkdir /pds
     mkdir /cache
     mount /tmp /tmp tmpfs
+
+    write /dev/usb_device_mode msc_adb
 
 on boot
 
