@@ -7,9 +7,6 @@ toggle_signature_check();
 void
 toggle_script_asserts();
 
-void
-show_choose_zip_menu();
-
 int
 do_nandroid_backup(const char* backup_name);
 
@@ -26,7 +23,7 @@ void
 show_partition_menu();
 
 void
-show_choose_zip_menu();
+show_choose_zip_menu(const char* volume);
 
 int
 install_zip(const char* packagefilepath);

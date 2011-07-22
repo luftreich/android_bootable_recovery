@@ -44,7 +44,9 @@
 
 int signature_check_enabled = 1;
 int script_assert_enabled = 1;
+#ifndef BOARD_HAS_SDCARD_INTERNAL
 static const char *SDCARD_UPDATE_FILE = "/sdcard/update.zip";
+#endif
 
 void
 toggle_signature_check()
@@ -104,6 +106,11 @@ char* INSTALL_MENU_ITEMS[] = {  "choose zip from sdcard",
 
 void show_install_update_menu()
 {
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+    char sdcard_package_file[PATH_MAX];
+    char confirm[PATH_MAX];
+    int chosen_sdcard = -1;
+#endif
     static char* headers[] = {  "Apply update from .zip file on SD card",
                                 "",
                                 NULL
@@ -121,12 +128,47 @@ void show_install_update_menu()
                 break;
             case ITEM_APPLY_SDCARD:
             {
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+                chosen_sdcard = show_sdcard_selection_menu();
+                if (chosen_sdcard > -1)
+                {
+                    switch (chosen_sdcard) {
+                        case 0:
+                            sprintf(sdcard_package_file, "/sdcard/update.zip");
+                            break;
+                        case 1:
+                            sprintf(sdcard_package_file, "/sdcard-ext/update.zip");
+                            break;
+                    }
+                    sprintf(confirm, "Yes - Install %s", sdcard_package_file);
+                }
+                else break;
+                if (confirm_selection("Confirm install?", confirm))
+                    install_zip(sdcard_package_file);
+#else
                 if (confirm_selection("Confirm install?", "Yes - Install /sdcard/update.zip"))
                     install_zip(SDCARD_UPDATE_FILE);
+#endif
                 break;
             }
             case ITEM_CHOOSE_ZIP:
-                show_choose_zip_menu();
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+                chosen_sdcard = show_sdcard_selection_menu();
+                if (chosen_sdcard > -1)
+                {
+                    switch (chosen_sdcard) {
+                        case 0:
+                            show_choose_zip_menu("/sdcard");
+                            break;
+                        case 1:
+                            show_choose_zip_menu("/sdcard-ext");
+                            break;
+                    }
+                }
+                else break;
+#else
+                show_choose_zip_menu("/sdcard");
+#endif
                 break;
             default:
                 return;
@@ -316,10 +358,10 @@ char* choose_file_menu(const char* directory, const char* fileExtensionOrDirecto
     return return_value;
 }
 
-void show_choose_zip_menu()
+void show_choose_zip_menu(const char* volume)
 {
-    if (ensure_path_mounted("/sdcard") != 0) {
-        LOGE ("Can't mount /sdcard\n");
+    if (ensure_path_mounted(volume) != 0) {
+        LOGE ("Can't mount %s\n", volume);
         return;
     }
 
@@ -328,7 +370,7 @@ void show_choose_zip_menu()
                                 NULL
     };
 
-    char* file = choose_file_menu("/sdcard/", ".zip", headers);
+    char* file = choose_file_menu(volume, ".zip", headers);
     if (file == NULL)
         return;
     static char* confirm_install  = "Confirm install?";
@@ -896,7 +938,7 @@ void show_advanced_menu()
                             "Partition SD Card",
                             "Fix Permissions",
 #ifdef BOARD_HAS_SDCARD_INTERNAL
-                            "Partition Internal SD Card",
+//                            "Partition Internal SD Card",
 #endif
 #endif
                             NULL
