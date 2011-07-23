@@ -14,7 +14,7 @@ int
 do_nandroid_restore();
 
 void
-show_nandroid_restore_menu();
+show_nandroid_restore_menu(const char* volume);
 
 void
 show_nandroid_menu();

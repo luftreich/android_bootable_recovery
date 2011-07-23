@@ -370,6 +370,7 @@ void show_choose_zip_menu(const char* volume)
                                 NULL
     };
 
+    sprintf(volume, "%s/", volume);
     char* file = choose_file_menu(volume, ".zip", headers);
     if (file == NULL)
         return;
@@ -380,10 +381,10 @@ void show_choose_zip_menu(const char* volume)
         install_zip(file);
 }
 
-void show_nandroid_restore_menu()
+void show_nandroid_restore_menu(const char* volume)
 {
-    if (ensure_path_mounted("/sdcard") != 0) {
-        LOGE ("Can't mount /sdcard\n");
+    if (ensure_path_mounted(volume) != 0) {
+        LOGE ("Can't mount %s\n", volume);
         return;
     }
 
@@ -392,7 +393,9 @@ void show_nandroid_restore_menu()
                                 NULL
     };
 
-    char* file = choose_file_menu("/sdcard/clockworkmod/backup/", NULL, headers);
+    char backup_path[PATH_MAX];
+    sprintf(backup_path, "%s/clockworkmod/backup/", volume);
+    char* file = choose_file_menu(backup_path, NULL, headers);
     if (file == NULL)
         return;
 
@@ -799,10 +802,10 @@ int run_and_remove_extendedcommand()
     return run_script(tmp);
 }
 
-void show_nandroid_advanced_restore_menu()
+void show_nandroid_advanced_restore_menu(const char* volume)
 {
-    if (ensure_path_mounted("/sdcard") != 0) {
-        LOGE ("Can't mount /sdcard\n");
+    if (ensure_path_mounted(volume) != 0) {
+        LOGE ("Can't mount %s\n", volume);
         return;
     }
 
@@ -810,12 +813,14 @@ void show_nandroid_advanced_restore_menu()
                                 "",
                                 "Choose an image to restore",
                                 "first. The next menu will",
-                                "you more options.",
+                                "give you more options.",
                                 "",
                                 NULL
     };
 
-    char* file = choose_file_menu("/sdcard/clockworkmod/backup/", NULL, advancedheaders);
+    char backup_path[PATH_MAX];
+    sprintf(backup_path, "%s/clockworkmod/backup/", volume);
+    char* file = choose_file_menu(backup_path, NULL, advancedheaders);
     if (file == NULL)
         return;
 
@@ -884,6 +889,9 @@ void show_nandroid_menu()
                             NULL
     };
 
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+    int chosen_sdcard = -1;
+#endif
     int chosen_item = get_menu_selection(headers, list, 0, 0);
     switch (chosen_item)
     {
@@ -892,24 +900,75 @@ void show_nandroid_menu()
                 char backup_path[PATH_MAX];
                 time_t t = time(NULL);
                 struct tm *tmp = localtime(&t);
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+                chosen_sdcard = show_sdcard_selection_menu();
+                if (chosen_sdcard > -1)
+                {
+                    switch (chosen_sdcard) {
+                        case 0:
+                            sprintf(backup_path, "/sdcard");
+                            break;
+                        case 1:
+                            sprintf(backup_path, "/sdcard-ext");
+                            break;
+                    }
+                }
+                else break;
+#else
+                sprintf(backup_path, "/sdcard");
+#endif
                 if (tmp == NULL)
                 {
                     struct timeval tp;
                     gettimeofday(&tp, NULL);
-                    sprintf(backup_path, "/sdcard/clockworkmod/backup/%d", tp.tv_sec);
+                    sprintf(backup_path, "%s/clockworkmod/backup/%d", backup_path, tp.tv_sec);
                 }
                 else
                 {
-                    strftime(backup_path, sizeof(backup_path), "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
+                    char tmp_path[PATH_MAX];
+                    strftime(tmp_path, sizeof(tmp_path), "clockworkmod/backup/%F.%H.%M.%S", tmp);
+                    sprintf(backup_path, "%s/%s", backup_path, tmp_path);
                 }
                 nandroid_backup(backup_path);
             }
             break;
         case 1:
-            show_nandroid_restore_menu();
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+            chosen_sdcard = show_sdcard_selection_menu();
+            if (chosen_sdcard > -1)
+            {
+                switch (chosen_sdcard) {
+                    case 0:
+                        show_nandroid_restore_menu("/sdcard");
+                        break;
+                    case 1:
+                        show_nandroid_restore_menu("/sdcard-ext");
+                        break;
+                }
+            }
+            else break;
+#else
+            show_nandroid_restore_menu("/sdcard");
+#endif
             break;
         case 2:
-            show_nandroid_advanced_restore_menu();
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+            chosen_sdcard = show_sdcard_selection_menu();
+            if (chosen_sdcard > -1)
+            {
+                switch (chosen_sdcard) {
+                    case 0:
+                        show_nandroid_advanced_restore_menu("/sdcard");
+                        break;
+                    case 1:
+                        show_nandroid_advanced_restore_menu("/sdcard-ext");
+                        break;
+                }
+            }
+            else break;
+#else
+            show_nandroid_advanced_restore_menu("/sdcard");
+#endif
             break;
     }
 }
