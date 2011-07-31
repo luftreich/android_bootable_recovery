@@ -370,8 +370,9 @@ void show_choose_zip_menu(const char* volume)
                                 NULL
     };
 
-    sprintf(volume, "%s/", volume);
-    char* file = choose_file_menu(volume, ".zip", headers);
+    char install_path[PATH_MAX];
+    sprintf(install_path, "%s/", volume);
+    char* file = choose_file_menu(install_path, ".zip", headers);
     if (file == NULL)
         return;
     static char* confirm_install  = "Confirm install?";
@@ -898,6 +899,7 @@ void show_nandroid_menu()
         case 0:
             {
                 char backup_path[PATH_MAX];
+                char final_path[PATH_MAX];
                 time_t t = time(NULL);
                 struct tm *tmp = localtime(&t);
 #ifdef BOARD_HAS_SDCARD_INTERNAL
@@ -921,15 +923,15 @@ void show_nandroid_menu()
                 {
                     struct timeval tp;
                     gettimeofday(&tp, NULL);
-                    sprintf(backup_path, "%s/clockworkmod/backup/%d", backup_path, tp.tv_sec);
+                    sprintf(final_path, "%s/clockworkmod/backup/%d", backup_path, tp.tv_sec);
                 }
                 else
                 {
                     char tmp_path[PATH_MAX];
                     strftime(tmp_path, sizeof(tmp_path), "clockworkmod/backup/%F.%H.%M.%S", tmp);
-                    sprintf(backup_path, "%s/%s", backup_path, tmp_path);
+                    sprintf(final_path, "%s/%s", backup_path, tmp_path);
                 }
-                nandroid_backup(backup_path);
+                nandroid_backup(final_path);
             }
             break;
         case 1:
