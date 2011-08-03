@@ -161,7 +161,7 @@ Value* BackupFn(const char* name, State* state, int argc, Expr* argv[]) {
         return NULL;
     }
     
-    if (0 != nandroid_backup(path))
+    if (0 != nandroid_backup(path, "/sdcard"))
         return StringValue(strdup(""));
     
     return StringValue(strdup(path));
@@ -209,7 +209,7 @@ Value* RestoreFn(const char* name, State* state, int argc, Expr* argv[]) {
     free(args);
     free(args2);
 
-    if (0 != nandroid_restore(path, restoreboot, restoresystem, restoredata, restorecache, restoresdext, 0)) {
+    if (0 != nandroid_restore(path, restoreboot, restoresystem, restoredata, restorecache, restoresdext, 0, 0, 0)) {
         free(path);
         return StringValue(strdup(""));
     }

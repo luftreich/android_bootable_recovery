@@ -42,7 +42,7 @@
 #include "flashutils/flashutils.h"
 #include <libgen.h>
 
-void nandroid_generate_timestamp_path(const char* backup_path)
+void nandroid_generate_timestamp_path(const char* backup_path, const char* sdcard_path)
 {
     time_t t = time(NULL);
     struct tm *tmp = localtime(&t);
@@ -50,11 +50,13 @@ void nandroid_generate_timestamp_path(const char* backup_path)
     {
         struct timeval tp;
         gettimeofday(&tp, NULL);
-        sprintf(backup_path, "/sdcard/clockworkmod/backup/%d", tp.tv_sec);
+        sprintf(backup_path, "%s/clockworkmod/backup/%d", sdcard_path, tp.tv_sec);
     }
     else
     {
-        strftime(backup_path, PATH_MAX, "/sdcard/clockworkmod/backup/%F.%H.%M.%S", tmp);
+        char tmp_path[PATH_MAX];
+        strftime(tmp_path, PATH_MAX, "clockworkmod/backup/%F.%H.%M.%S", tmp);
+        sprintf(backup_path, "%s/%s", sdcard_path, tmp_path);
     }
 }
 
@@ -214,17 +216,21 @@ int nandroid_backup_partition(const char* backup_path, const char* root) {
     return nandroid_backup_partition_extended(backup_path, root, 1);
 }
 
-int nandroid_backup(const char* backup_path)
+int nandroid_backup(const char* backup_path, const char* sdcard_path)
 {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     
-    if (ensure_path_mounted("/sdcard") != 0)
-        return print_and_error("Can't mount /sdcard\n");
+    if (ensure_path_mounted(sdcard_path) != 0) {
+        ui_print("Can't mount %s\n", sdcard_path);
+        return 1;
+    }
     
     int ret;
     struct statfs s;
-    if (0 != (ret = statfs("/sdcard", &s)))
-        return print_and_error("Unable to stat /sdcard\n");
+    if (0 != (ret = statfs(sdcard_path, &s))) {
+        ui_print("Unable to stat %s\n", sdcard_path);
+        return 1;
+    }
     uint64_t bavail = s.f_bavail;
     uint64_t bsize = s.f_bsize;
     uint64_t sdcard_free = bavail * bsize;
@@ -267,14 +273,19 @@ int nandroid_backup(const char* backup_path)
             return ret;
     }
 
-    if (0 != stat("/sdcard/.android_secure", &s))
-    {
-        ui_print("No /sdcard/.android_secure found. Skipping backup of applications on external storage.\n");
-    }
+    if (0 != ensure_path_mounted("/sdcard"))
+        ui_print("Could not mount /sdcard. Skipping backup of /sdcard.\n");
     else
     {
-        if (0 != (ret = nandroid_backup_partition_extended(backup_path, "/sdcard/.android_secure", 0)))
-            return ret;
+        if (0 != stat("/sdcard/.android_secure", &s))
+        {
+            ui_print("No /sdcard/.android_secure found. Skipping backup of applications on external storage.\n");
+        }
+        else
+        {
+            if (0 != (ret = nandroid_backup_partition_extended(backup_path, "/sdcard/.android_secure", 0)))
+                return ret;
+        }
     }
 
     if (0 != (ret = nandroid_backup_partition_extended(backup_path, "/cache", 0)))
@@ -290,6 +301,32 @@ int nandroid_backup(const char* backup_path)
         if (0 != ensure_path_mounted("/sd-ext"))
             ui_print("Could not mount sd-ext. sd-ext backup may not be supported on this device. Skipping backup of sd-ext.\n");
         else if (0 != (ret = nandroid_backup_partition(backup_path, "/sd-ext")))
+            return ret;
+    }
+
+    vol = volume_for_path("/osh");
+    if (vol == NULL || 0 != stat(vol->device, &s))
+    {
+        ui_print("No webtop found. Skipping backup of webtop.\n");
+    }
+    else
+    {
+        if (0 != ensure_path_mounted("/osh"))
+            ui_print("Could not mount webtop. Webtop backup may not be supported on this device. Skipping backup of webtop.\n");
+        else if (0 != (ret = nandroid_backup_partition(backup_path, "/osh")))
+            return ret;
+    }
+
+    vol = volume_for_path("/pds");
+    if (vol == NULL || 0 != stat(vol->device, &s))
+    {
+        ui_print("No PDS volume found. Skipping backup of PDS.\n");
+    }
+    else
+    {
+        if (0 != ensure_path_mounted("/pds"))
+            ui_print("Could not mount PDS volume. PDS backup may not be supported on this device. Skipping backup of PDS volume.\n");
+        else if (0 != (ret = nandroid_backup_partition(backup_path, "/pds")))
             return ret;
     }
 
@@ -450,14 +487,19 @@ int nandroid_restore_partition(const char* backup_path, const char* root) {
     return nandroid_restore_partition_extended(backup_path, root, 1);
 }
 
-int nandroid_restore(const char* backup_path, int restore_boot, int restore_system, int restore_data, int restore_cache, int restore_sdext, int restore_wimax)
+int nandroid_restore(const char* backup_path, int restore_boot, int restore_system, int restore_data, int restore_cache, int restore_sdext, int restore_wimax, int restore_osh, int restore_pds)
 {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
     yaffs_files_total = 0;
 
-    if (ensure_path_mounted("/sdcard") != 0)
-        return print_and_error("Can't mount /sdcard\n");
+    char sdcard_path[PATH_MAX] = "/sdcard-ext";
+    if (strstr(backup_path, "/sdcard-ext") == NULL)
+        sprintf(sdcard_path, "/sdcard");
+    if (ensure_path_mounted(sdcard_path) != 0) {
+        ui_print("Can't mount %s\n", sdcard_path);
+        return 1;
+    }
     
     char tmp[PATH_MAX];
 
@@ -520,6 +562,12 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     if (restore_sdext && 0 != (ret = nandroid_restore_partition(backup_path, "/sd-ext")))
         return ret;
 
+    if (restore_pds && 0 != (ret = nandroid_restore_partition(backup_path, "/osh")))
+        return ret;
+
+    if (restore_osh && 0 != (ret = nandroid_restore_partition(backup_path, "/pds")))
+        return ret;
+
     sync();
     ui_set_background(BACKGROUND_ICON_NONE);
     ui_reset_progress();
@@ -529,7 +577,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
 
 int nandroid_usage()
 {
-    printf("Usage: nandroid backup\n");
+    printf("Usage: nandroid backup [sdcard path]\n");
     printf("Usage: nandroid restore <directory>\n");
     return 1;
 }
@@ -541,19 +589,16 @@ int nandroid_main(int argc, char** argv)
     
     if (strcmp("backup", argv[1]) == 0)
     {
-        if (argc != 2)
-            return nandroid_usage();
-        
         char backup_path[PATH_MAX];
-        nandroid_generate_timestamp_path(backup_path);
-        return nandroid_backup(backup_path);
+        nandroid_generate_timestamp_path(backup_path, (argc == 3) ? argv[2] : "/sdcard");
+        return nandroid_backup(backup_path, (argc == 3) ? argv[2] : "/sdcard");
     }
 
     if (strcmp("restore", argv[1]) == 0)
     {
         if (argc != 3)
             return nandroid_usage();
-        return nandroid_restore(argv[2], 1, 1, 1, 1, 1, 0);
+        return nandroid_restore(argv[2], 1, 1, 1, 1, 1, 0, 0, 0);
     }
     
     return nandroid_usage();
