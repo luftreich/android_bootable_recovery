@@ -562,11 +562,19 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     if (restore_sdext && 0 != (ret = nandroid_restore_partition(backup_path, "/sd-ext")))
         return ret;
 
-    if (restore_pds && 0 != (ret = nandroid_restore_partition(backup_path, "/osh")))
-        return ret;
+    vol = volume_for_path("/osh");
+    if (restore_osh && vol != NULL && 0 == stat(vol->device, &s))
+    {
+        if (0 != (ret = nandroid_restore_partition(backup_path, "/osh")))
+            return ret;
+    }
 
-    if (restore_osh && 0 != (ret = nandroid_restore_partition(backup_path, "/pds")))
-        return ret;
+    vol = volume_for_path("/pds");
+    if (restore_pds && vol != NULL && 0 == stat(vol->device, &s))
+    {
+        if (0 != (ret = nandroid_restore_partition(backup_path, "/pds")))
+            return ret;
+    }
 
     sync();
     ui_set_background(BACKGROUND_ICON_NONE);
@@ -598,7 +606,7 @@ int nandroid_main(int argc, char** argv)
     {
         if (argc != 3)
             return nandroid_usage();
-        return nandroid_restore(argv[2], 1, 1, 1, 1, 1, 0, 0, 0);
+        return nandroid_restore(argv[2], 1, 1, 1, 1, 1, 0, 1, 0);
     }
     
     return nandroid_usage();

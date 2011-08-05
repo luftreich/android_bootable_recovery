@@ -401,7 +401,7 @@ void show_nandroid_restore_menu(const char* volume)
         return;
 
     if (confirm_selection("Confirm restore?", "Yes - Restore"))
-        nandroid_restore(file, 1, 1, 1, 1, 1, 0, 0, 0);
+        nandroid_restore(file, 1, 1, 1, 1, 1, 0, 1, 0);
 }
 
 #ifndef BOARD_UMS_LUNFILE
@@ -410,7 +410,7 @@ void show_nandroid_restore_menu(const char* volume)
 
 void show_mount_usb_storage_menu()
 {
-    int fd;
+    int fd, fd2;
     Volume *vol = volume_for_path("/sdcard");
     if ((fd = open(BOARD_UMS_LUNFILE, O_WRONLY)) < 0) {
         LOGE("Unable to open ums lunfile (%s)", strerror(errno));
@@ -423,9 +423,21 @@ void show_mount_usb_storage_menu()
         close(fd);
         return -1;
     }
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+    vol = volume_for_path("/sdcard-ext");
+    if ((fd2 = open("/sys/devices/platform/usb_mass_storage/lun1/file", O_WRONLY)) < 0) {
+        LOGE("Unable to open ums lunfile for secondary SD card (%s)", strerror(errno));
+    }
+
+    if ((write(fd2, vol->device, strlen(vol->device)) < 0) &&
+        (!vol->device2 || (write(fd2, vol->device, strlen(vol->device2)) < 0))) {
+        LOGE("Unable to write to ums lunfile for secondary SD card (%s)", strerror(errno));
+        close(fd2);
+    }
+#endif
     static char* headers[] = {  "USB Mass Storage device",
-                                "Leaving this menu unmount",
-                                "your SD card from your PC.",
+                                "Leaving this menu unmounts",
+                                "all SD cards from your PC.",
                                 "",
                                 NULL
     };
@@ -439,17 +451,27 @@ void show_mount_usb_storage_menu()
             break;
     }
 
+    char ch = 0;
     if ((fd = open(BOARD_UMS_LUNFILE, O_WRONLY)) < 0) {
         LOGE("Unable to open ums lunfile (%s)", strerror(errno));
         return -1;
     }
 
-    char ch = 0;
     if (write(fd, &ch, 1) < 0) {
         LOGE("Unable to write to ums lunfile (%s)", strerror(errno));
         close(fd);
         return -1;
     }
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+    if ((fd2 = open("/sys/devices/platform/usb_mass_storage/lun1/file", O_WRONLY)) < 0) {
+        LOGE("Unable to open ums lunfile for secondary SD card (%s)", strerror(errno));
+    }
+
+    if (write(fd2, &ch, 1) < 0) {
+        LOGE("Unable to write to ums lunfile for secondary SD card (%s)", strerror(errno));
+        close(fd2);
+    }
+#endif
 }
 
 int confirm_selection(const char* title, const char* confirm)
@@ -1135,7 +1157,11 @@ void show_advanced_menu()
                     continue;
 
                 char sddevice[256];
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+                Volume *vol = volume_for_path("/sdcard-ext");
+#else
                 Volume *vol = volume_for_path("/sdcard");
+#endif
                 strcpy(sddevice, vol->device);
                 // we only want the mmcblk, not the partition
                 sddevice[strlen("/dev/block/mmcblkX")] = NULL;
@@ -1313,7 +1339,7 @@ void process_volumes() {
     ui_print("in case of error.\n");
 
     nandroid_backup(backup_path, "/sdcard");
-    nandroid_restore(backup_path, 1, 1, 1, 1, 1, 0, 0, 0);
+    nandroid_restore(backup_path, 1, 1, 1, 1, 1, 0, 1, 0);
     ui_set_show_text(0);
 }
 
