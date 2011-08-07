@@ -389,6 +389,7 @@ void show_nandroid_restore_menu(const char* volume)
         return;
     }
 
+    int restore_webtop = 1;
     static char* headers[] = {  "Choose an image to restore",
                                 "",
                                 NULL
@@ -400,8 +401,32 @@ void show_nandroid_restore_menu(const char* volume)
     if (file == NULL)
         return;
 
+#ifdef BOARD_HAS_WEBTOP
+    static char* header[] = {  "Include webtop in restore?",
+                               "",
+                               NULL
+    };
+
+    static char* list[] = {  "Yes",
+                             "No",
+                             NULL
+    };
+
+    switch (get_menu_selection(header, list, 0, 0))
+    {
+        case 0:
+            restore_webtop = 1;
+            break;
+        case 1:
+            restore_webtop = 0;
+            break;
+        default:
+            return;
+    }
+#endif
+
     if (confirm_selection("Confirm restore?", "Yes - Restore"))
-        nandroid_restore(file, 1, 1, 1, 1, 1, 0, 1, 0);
+        nandroid_restore(file, 1, 1, 1, 1, restore_webtop, 0, restore_webtop, 0);
 }
 
 #ifndef BOARD_UMS_LUNFILE
@@ -985,6 +1010,22 @@ void show_nandroid_menu()
 #else
                 sprintf(backup_path, "/sdcard");
 #endif
+#ifdef BOARD_HAS_WEBTOP
+                static char* header[] = {  "Include webtop in backup?",
+                                           "",
+                                           NULL
+                };
+
+                static char* item[] = {  "Yes",
+                                         "No",
+                                         NULL
+                };
+
+                int skip_webtop = get_menu_selection(header, item, 0, 0);
+                if (skip_webtop == GO_BACK) {
+                    return;
+                }
+#endif
                 if (tmp == NULL)
                 {
                     struct timeval tp;
@@ -997,7 +1038,7 @@ void show_nandroid_menu()
                     strftime(tmp_path, sizeof(tmp_path), "clockworkmod/backup/%F.%H.%M.%S", tmp);
                     sprintf(final_path, "%s/%s", backup_path, tmp_path);
                 }
-                nandroid_backup(final_path, backup_path);
+                nandroid_backup(final_path, backup_path, skip_webtop);
             }
             break;
         case 1:
@@ -1338,7 +1379,7 @@ void process_volumes() {
     ui_print("named %s. Try restoring it\n", backup_name);
     ui_print("in case of error.\n");
 
-    nandroid_backup(backup_path, "/sdcard");
+    nandroid_backup(backup_path, "/sdcard", 0);
     nandroid_restore(backup_path, 1, 1, 1, 1, 1, 0, 1, 0);
     ui_set_show_text(0);
 }

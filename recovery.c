@@ -649,7 +649,28 @@ sdcard_directory(const char* path) {
 
 static void
 wipe_data(int confirm) {
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+    int include_sdext = 0;
+#else
+    int include_sdext = 1;
+#endif
+
     if (confirm) {
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+        static char* header[] = { "Include sd-ext in wipe?",
+                                  "",
+                                  NULL };
+
+        static char* list[] = { "No",
+                                "Yes",
+                                NULL };
+
+        include_sdext = get_menu_selection(header, list, 0, 0);
+        if (include_sdext == GO_BACK) {
+            return;
+        }
+#endif
+
         static char** title_headers = NULL;
 
         if (title_headers == NULL) {
@@ -686,7 +707,9 @@ wipe_data(int confirm) {
     if (has_datadata()) {
         erase_volume("/datadata");
     }
-    erase_volume("/sd-ext");
+    if (include_sdext) {
+        erase_volume("/sd-ext");
+    }
     erase_volume("/sdcard/.android_secure");
     ui_print("Data wipe complete.\n");
 }
