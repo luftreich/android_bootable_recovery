@@ -35,7 +35,11 @@ endif
 ifdef ATRIX_BUILD
 ATRIX_VERSION := -atrix3.1
 else
+ifdef PHOTON_BUILD
+ATRIX_VERSION := -photon1
+else
 ATRIX_VERSION :=
+endif
 endif
 
 RECOVERY_VERSION := $(RECOVERY_NAME) v4.0.1.4$(ATRIX_VERSION)
