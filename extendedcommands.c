@@ -1104,7 +1104,7 @@ void show_advanced_menu()
                             "Key Test",
                             "Show log",
 #ifndef BOARD_HAS_SMALL_RECOVERY
-                            "Partition SD Card",
+                            "Partition External SD Card",
                             "Fix Permissions",
 #ifdef BOARD_HAS_SDCARD_INTERNAL
 //                            "Partition Internal SD Card",
