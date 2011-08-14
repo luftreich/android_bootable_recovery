@@ -165,7 +165,7 @@ int nandroid_backup_partition_extended(const char* backup_path, const char* moun
     char* name = basename(mount_point);
 
     struct stat file_info;
-    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) == 0;
+    int callback = stat("/tmp/.hidenandroidprogress", &file_info) == 0;
     
     ui_print("Backing up %s...\n", name);
     if (0 != (ret = ensure_path_mounted(mount_point) != 0)) {
@@ -236,7 +236,7 @@ int nandroid_backup(const char* backup_path, const char* sdcard_path, int skip_w
     uint64_t sdcard_free = bavail * bsize;
     uint64_t sdcard_free_mb = sdcard_free / (uint64_t)(1024 * 1024);
     ui_print("SD Card space free: %lluMB\n", sdcard_free_mb);
-    if (sdcard_free_mb < 150)
+    if ((skip_webtop && (sdcard_free_mb < 300)) || (!skip_webtop && (sdcard_free_mb < 1200)))
         ui_print("There may not be enough free space to complete backup... continuing...\n");
     
     char tmp[PATH_MAX];
@@ -326,10 +326,10 @@ int nandroid_backup(const char* backup_path, const char* sdcard_path, int skip_w
             return ret;
     }
 
-    ui_print("Generating md5 sum...\n");
+    ui_print("Generating MD5 sums...\n");
     sprintf(tmp, "nandroid-md5.sh %s", backup_path);
     if (0 != (ret = __system(tmp))) {
-        ui_print("Error while generating md5 sum!\n");
+        ui_print("Error while generating MD5 sums!\n");
         return ret;
     }
     
@@ -358,16 +358,16 @@ static int tar_extract_wrapper(const char* backup_file_image, const char* backup
     char tmp[PATH_MAX];
     sprintf(tmp, "cd $(dirname %s) ; tar xvf %s ; exit $?", backup_path, backup_file_image);
 
-    char path[PATH_MAX];
     FILE *fp = __popen(tmp, "r");
     if (fp == NULL) {
         ui_print("Unable to execute tar.\n");
         return -1;
     }
 
-    while (fgets(path, PATH_MAX, fp) != NULL) {
+    while (fgets(tmp, PATH_MAX, fp) != NULL) {
+        tmp[PATH_MAX - 1] = NULL;
         if (callback)
-            yaffs_callback(path);
+            yaffs_callback(tmp);
     }
 
     return __pclose(fp);
@@ -418,7 +418,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
 
     ensure_directory(mount_point);
 
-    int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) == 0;
+    int callback = stat("/tmp/.hidenandroidprogress", &file_info) == 0;
 
     ui_print("Restoring %s...\n", name);
     /*
@@ -502,7 +502,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     ui_print("Checking MD5 sums...\n");
     sprintf(tmp, "cd %s && md5sum -c nandroid.md5", backup_path);
     if (0 != __system(tmp))
-        return print_and_error("MD5 mismatch!\n");
+        return print_and_error("MD5 sum mismatch!\n");
     
     int ret;
 
@@ -558,19 +558,11 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     if (restore_sdext && 0 != (ret = nandroid_restore_partition(backup_path, "/sd-ext")))
         return ret;
 
-    vol = volume_for_path("/osh");
-    if (restore_osh && vol != NULL && 0 == stat(vol->device, &s))
-    {
-        if (0 != (ret = nandroid_restore_partition(backup_path, "/osh")))
-            return ret;
-    }
+    if (restore_osh && 0 != (ret = nandroid_restore_partition(backup_path, "/osh")))
+        return ret;
 
-    vol = volume_for_path("/pds");
-    if (restore_pds && vol != NULL && 0 == stat(vol->device, &s))
-    {
-        if (0 != (ret = nandroid_restore_partition(backup_path, "/pds")))
-            return ret;
-    }
+    if (restore_pds && 0 != (ret = nandroid_restore_partition(backup_path, "/pds")))
+        return ret;
 
     sync();
     ui_set_background(BACKGROUND_ICON_NONE);

@@ -33,7 +33,7 @@ RECOVERY_NAME := CWM-based Recovery
 endif
 
 ifdef ATRIX_BUILD
-ATRIX_VERSION := -atrix2
+ATRIX_VERSION := -atrix3
 else
 ATRIX_VERSION :=
 endif
