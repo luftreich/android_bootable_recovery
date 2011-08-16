@@ -59,6 +59,10 @@ ifdef BUILD_DARK_GREEN_COLOR
 else
 ifdef BUILD_BLUE_COLOR
   LOCAL_CFLAGS += -DBUILD_BLUE_COLOR=1
+else
+ifdef BUILD_RED_COLOR
+  LOCAL_CFLAGS += -DBUILD_RED_COLOR=1
+endif
 endif
 endif
 endif

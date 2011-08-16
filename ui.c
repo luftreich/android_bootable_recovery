@@ -176,6 +176,8 @@ static void draw_text_line(int row, const char* t) {
   #define MENU_TEXT_COLOR 0, 100, 0, 255
 #elif BUILD_BLUE_COLOR
   #define MENU_TEXT_COLOR 0, 110, 255, 255
+#elif BUILD_RED_COLOR
+  #define MENU_TEXT_COLOR 211, 2, 2, 255
 #else
   #define MENU_TEXT_COLOR 255, 160, 49, 255
 #endif
