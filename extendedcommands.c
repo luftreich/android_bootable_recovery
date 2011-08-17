@@ -1171,7 +1171,8 @@ void show_advanced_menu()
             }
             case 6:
             {
-                static char* ext_sizes[] = { "128M",
+                static char* ext_sizes[] = { "0M",
+                                             "128M",
                                              "256M",
                                              "512M",
                                              "1024M",
@@ -1208,7 +1209,10 @@ void show_advanced_menu()
                 sddevice[strlen("/dev/block/mmcblkX")] = NULL;
                 char cmd[PATH_MAX];
                 setenv("SDPATH", sddevice, 1);
-                sprintf(cmd, "sdparted -es %s -ss %s -efs ext3 -s", ext_sizes[ext_size], swap_sizes[swap_size]);
+                if (ext_size > 0)
+                    sprintf(cmd, "sdparted -es %s -ss %s -efs ext3 -s", ext_sizes[ext_size], swap_sizes[swap_size]);
+                else
+                    sprintf(cmd, "sdparted -es %s -ss %s -s", ext_sizes[ext_size], swap_sizes[swap_size]);
                 ui_print("Partitioning SD Card... please wait...\n");
                 if (0 == __system(cmd))
                     ui_print("Done!\n");
@@ -1227,7 +1231,8 @@ void show_advanced_menu()
             }
             case 8:
             {
-                static char* ext_sizes[] = { "128M",
+                static char* ext_sizes[] = { "0M",
+                                             "128M",
                                              "256M",
                                              "512M",
                                              "1024M",
@@ -1260,7 +1265,10 @@ void show_advanced_menu()
                 sddevice[strlen("/dev/block/mmcblkX")] = NULL;
                 char cmd[PATH_MAX];
                 setenv("SDPATH", sddevice, 1);
-                sprintf(cmd, "sdparted -es %s -ss %s -efs ext3 -s", ext_sizes[ext_size], swap_sizes[swap_size]);
+                if (ext_size > 0)
+                    sprintf(cmd, "sdparted -es %s -ss %s -efs ext3 -s", ext_sizes[ext_size], swap_sizes[swap_size]);
+                else
+                    sprintf(cmd, "sdparted -es %s -ss %s -s", ext_sizes[ext_size], swap_sizes[swap_size]);
                 ui_print("Partitioning Internal SD Card... please wait...\n");
                 if (0 == __system(cmd))
                     ui_print("Done!\n");
