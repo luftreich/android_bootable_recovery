@@ -36,7 +36,7 @@ ifdef ATRIX_BUILD
 ATRIX_VERSION := -atrix3.2
 else
 ifdef PHOTON_BUILD
-ATRIX_VERSION := -photon1.1
+ATRIX_VERSION := -photon1.2
 else
 ATRIX_VERSION :=
 endif
