@@ -429,6 +429,42 @@ void show_nandroid_restore_menu(const char* volume)
         nandroid_restore(file, 1, 1, 1, 1, restore_webtop, 0, restore_webtop, 0);
 }
 
+void show_nandroid_verify_menu(const char* volume)
+{
+    if (ensure_path_mounted(volume) != 0) {
+        LOGE ("Can't mount %s\n", volume);
+        return;
+    }
+
+    static char* headers[] = {  "Choose an image to verify",
+                                "",
+                                NULL
+    };
+
+    char backup_path[PATH_MAX];
+    sprintf(backup_path, "%s/clockworkmod/backup/", volume);
+    char* file = choose_file_menu(backup_path, NULL, headers);
+    if (file == NULL)
+        return;
+
+    if (confirm_selection("Confirm verify?", "Yes - Verify")) {
+        char tmp[PATH_MAX];
+        ui_set_background(BACKGROUND_ICON_INSTALLING);
+        ui_show_indeterminate_progress();
+
+        ui_print("Checking MD5 sums...\n");
+        sprintf(tmp, "cd %s && md5sum -c nandroid.md5", file);
+        if (0 != __system(tmp)) {
+            ui_print("MD5 sum mismatch!\n");
+            return;
+        }
+
+        ui_set_background(BACKGROUND_ICON_NONE);
+        ui_reset_progress();
+        ui_print("\nVerify complete!\n");
+    }
+}
+
 #ifndef BOARD_UMS_LUNFILE
 #define BOARD_UMS_LUNFILE	"/sys/devices/platform/usb_mass_storage/lun0/file"
 #endif
@@ -976,6 +1012,7 @@ void show_nandroid_menu()
     };
 
     static char* list[] = { "Backup",
+                            "Verify",
                             "Restore",
                             "Advanced Restore",
                             NULL
@@ -1048,6 +1085,25 @@ void show_nandroid_menu()
             {
                 switch (chosen_sdcard) {
                     case 0:
+                        show_nandroid_verify_menu("/sdcard");
+                        break;
+                    case 1:
+                        show_nandroid_verify_menu("/sdcard-ext");
+                        break;
+                }
+            }
+            else break;
+#else
+            show_nandroid_verify_menu("/sdcard");
+#endif
+            break;
+        case 2:
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+            chosen_sdcard = show_sdcard_selection_menu();
+            if (chosen_sdcard > -1)
+            {
+                switch (chosen_sdcard) {
+                    case 0:
                         show_nandroid_restore_menu("/sdcard");
                         break;
                     case 1:
@@ -1060,7 +1116,7 @@ void show_nandroid_menu()
             show_nandroid_restore_menu("/sdcard");
 #endif
             break;
-        case 2:
+        case 3:
 #ifdef BOARD_HAS_SDCARD_INTERNAL
             chosen_sdcard = show_sdcard_selection_menu();
             if (chosen_sdcard > -1)

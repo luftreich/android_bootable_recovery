@@ -17,6 +17,9 @@ void
 show_nandroid_restore_menu(const char* volume);
 
 void
+show_nandroid_verify_menu(const char* volume);
+
+void
 show_nandroid_menu();
 
 void
