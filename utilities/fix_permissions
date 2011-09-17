@@ -194,7 +194,7 @@ fp_start()
          DATAMOUNT=1
       fi
       
-      if $TEST -e /dev/block/mmcblk0p2 && $TEST $( $GREP -c " $SD_EXT_DIRECTORY " "/proc/mounts" ) -eq 0; then
+      if $TEST -e /dev/block/mmcblk1p2 && $TEST $( $GREP -c " $SD_EXT_DIRECTORY " "/proc/mounts" ) -eq 0; then
          $MOUNT $SD_EXT_DIRECTORY > /dev/null 2>&1
          SYSSDMOUNT=1
       fi
@@ -325,11 +325,11 @@ fp_package()
          fp_chown_uid $OLD_UID 0 "$CODEPATH"
          fp_chown_gid $OLD_GID 0 "$CODEPATH"
          fp_chmod $OLD_PER "rw-r--r--" 644 "$CODEPATH"
-         elif $TEST "$APPDIR" = "/data/app" || $TEST "$APPDIR" = "/sd-ext/app"; then
+         elif $TEST "$APPDIR" = "/data/app" || $TEST "$APPDIR" = "$SD_EXT_DIRECTORY/app"; then
          fp_chown_uid $OLD_UID 1000 "$CODEPATH"
          fp_chown_gid $OLD_GID 1000 "$CODEPATH"
          fp_chmod $OLD_PER "rw-r--r--" 644 "$CODEPATH"
-         elif $TEST "$APPDIR" = "/data/app-private" || $TEST "$APPDIR" = "/sd-ext/app-private"; then
+         elif $TEST "$APPDIR" = "/data/app-private" || $TEST "$APPDIR" = "$SD_EXT_DIRECTORY/app-private"; then
          fp_chown_uid $OLD_UID 1000 "$CODEPATH"
          fp_chown_gid $OLD_GID $GID "$CODEPATH"
          fp_chmod $OLD_PER "rw-r-----" 640 "$CODEPATH"

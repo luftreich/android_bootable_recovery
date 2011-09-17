@@ -134,10 +134,10 @@ void show_install_update_menu()
                 {
                     switch (chosen_sdcard) {
                         case 0:
-                            sprintf(sdcard_package_file, "/sdcard/update.zip");
+                            sprintf(sdcard_package_file, "/emmc/update.zip");
                             break;
                         case 1:
-                            sprintf(sdcard_package_file, "/sdcard-ext/update.zip");
+                            sprintf(sdcard_package_file, "/sdcard/update.zip");
                             break;
                     }
                     sprintf(confirm, "Yes - Install %s", sdcard_package_file);
@@ -158,10 +158,10 @@ void show_install_update_menu()
                 {
                     switch (chosen_sdcard) {
                         case 0:
-                            show_choose_zip_menu("/sdcard");
+                            show_choose_zip_menu("/emmc");
                             break;
                         case 1:
-                            show_choose_zip_menu("/sdcard-ext");
+                            show_choose_zip_menu("/sdcard");
                             break;
                     }
                 }
@@ -466,7 +466,11 @@ void show_nandroid_verify_menu(const char* volume)
 }
 
 #ifndef BOARD_UMS_LUNFILE
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+#define BOARD_UMS_LUNFILE	"/sys/devices/platform/usb_mass_storage/lun1/file"
+#else
 #define BOARD_UMS_LUNFILE	"/sys/devices/platform/usb_mass_storage/lun0/file"
+#endif
 #endif
 
 void show_mount_usb_storage_menu()
@@ -475,24 +479,20 @@ void show_mount_usb_storage_menu()
     Volume *vol = volume_for_path("/sdcard");
     if ((fd = open(BOARD_UMS_LUNFILE, O_WRONLY)) < 0) {
         LOGE("Unable to open ums lunfile (%s)", strerror(errno));
-        return -1;
     }
-
-    if ((write(fd, vol->device, strlen(vol->device)) < 0) &&
+    else if ((write(fd, vol->device, strlen(vol->device)) < 0) &&
         (!vol->device2 || (write(fd, vol->device, strlen(vol->device2)) < 0))) {
         LOGE("Unable to write to ums lunfile (%s)", strerror(errno));
         close(fd);
-        return -1;
     }
 #ifdef BOARD_HAS_SDCARD_INTERNAL
-    vol = volume_for_path("/sdcard-ext");
-    if ((fd2 = open("/sys/devices/platform/usb_mass_storage/lun1/file", O_WRONLY)) < 0) {
-        LOGE("Unable to open ums lunfile for secondary SD card (%s)", strerror(errno));
+    vol = volume_for_path("/emmc");
+    if ((fd2 = open("/sys/devices/platform/usb_mass_storage/lun0/file", O_WRONLY)) < 0) {
+        LOGE("Unable to open ums lunfile for internal SD card (%s)", strerror(errno));
     }
-
-    if ((write(fd2, vol->device, strlen(vol->device)) < 0) &&
+    else if ((write(fd2, vol->device, strlen(vol->device)) < 0) &&
         (!vol->device2 || (write(fd2, vol->device, strlen(vol->device2)) < 0))) {
-        LOGE("Unable to write to ums lunfile for secondary SD card (%s)", strerror(errno));
+        LOGE("Unable to write to ums lunfile for internal SD card (%s)", strerror(errno));
         close(fd2);
     }
 #endif
@@ -515,21 +515,17 @@ void show_mount_usb_storage_menu()
     char ch = 0;
     if ((fd = open(BOARD_UMS_LUNFILE, O_WRONLY)) < 0) {
         LOGE("Unable to open ums lunfile (%s)", strerror(errno));
-        return -1;
     }
-
-    if (write(fd, &ch, 1) < 0) {
+    else if (write(fd, &ch, 1) < 0) {
         LOGE("Unable to write to ums lunfile (%s)", strerror(errno));
         close(fd);
-        return -1;
     }
 #ifdef BOARD_HAS_SDCARD_INTERNAL
-    if ((fd2 = open("/sys/devices/platform/usb_mass_storage/lun1/file", O_WRONLY)) < 0) {
-        LOGE("Unable to open ums lunfile for secondary SD card (%s)", strerror(errno));
+    if ((fd2 = open("/sys/devices/platform/usb_mass_storage/lun0/file", O_WRONLY)) < 0) {
+        LOGE("Unable to open ums lunfile for internal SD card (%s)", strerror(errno));
     }
-
-    if (write(fd2, &ch, 1) < 0) {
-        LOGE("Unable to write to ums lunfile for secondary SD card (%s)", strerror(errno));
+    else if (write(fd2, &ch, 1) < 0) {
+        LOGE("Unable to write to ums lunfile for internal SD card (%s)", strerror(errno));
         close(fd2);
     }
 #endif
@@ -540,6 +536,10 @@ int confirm_selection(const char* title, const char* confirm)
     struct stat info;
     if (0 == stat("/sdcard/clockworkmod/.no_confirm", &info))
         return 1;
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+    if (0 == stat("/emmc/clockworkmod/.no_confirm", &info))
+        return 1;
+#endif
 
     char* confirm_headers[]  = {  title, "  THIS CAN NOT BE UNDONE.", "", NULL };
     char* items[] = { "No",
@@ -1036,10 +1036,10 @@ void show_nandroid_menu()
                 {
                     switch (chosen_sdcard) {
                         case 0:
-                            sprintf(backup_path, "/sdcard");
+                            sprintf(backup_path, "/emmc");
                             break;
                         case 1:
-                            sprintf(backup_path, "/sdcard-ext");
+                            sprintf(backup_path, "/sdcard");
                             break;
                     }
                 }
@@ -1085,10 +1085,10 @@ void show_nandroid_menu()
             {
                 switch (chosen_sdcard) {
                     case 0:
-                        show_nandroid_verify_menu("/sdcard");
+                        show_nandroid_verify_menu("/emmc");
                         break;
                     case 1:
-                        show_nandroid_verify_menu("/sdcard-ext");
+                        show_nandroid_verify_menu("/sdcard");
                         break;
                 }
             }
@@ -1104,10 +1104,10 @@ void show_nandroid_menu()
             {
                 switch (chosen_sdcard) {
                     case 0:
-                        show_nandroid_restore_menu("/sdcard");
+                        show_nandroid_restore_menu("/emmc");
                         break;
                     case 1:
-                        show_nandroid_restore_menu("/sdcard-ext");
+                        show_nandroid_restore_menu("/sdcard");
                         break;
                 }
             }
@@ -1123,10 +1123,10 @@ void show_nandroid_menu()
             {
                 switch (chosen_sdcard) {
                     case 0:
-                        show_nandroid_advanced_restore_menu("/sdcard");
+                        show_nandroid_advanced_restore_menu("/emmc");
                         break;
                     case 1:
-                        show_nandroid_advanced_restore_menu("/sdcard-ext");
+                        show_nandroid_advanced_restore_menu("/sdcard");
                         break;
                 }
             }
@@ -1163,7 +1163,9 @@ void show_advanced_menu()
                             "Partition External SD Card",
                             "Fix Permissions",
 #ifdef BOARD_HAS_SDCARD_INTERNAL
-//                            "Partition Internal SD Card",
+#ifndef BOARD_HAS_INTERNAL_PARTITIONS
+                            "Partition Internal SD Card",
+#endif
 #endif
 #endif
                             NULL
@@ -1255,11 +1257,7 @@ void show_advanced_menu()
                     continue;
 
                 char sddevice[256];
-#ifdef BOARD_HAS_SDCARD_INTERNAL
-                Volume *vol = volume_for_path("/sdcard-ext");
-#else
                 Volume *vol = volume_for_path("/sdcard");
-#endif
                 strcpy(sddevice, vol->device);
                 // we only want the mmcblk, not the partition
                 sddevice[strlen("/dev/block/mmcblkX")] = NULL;
@@ -1376,6 +1374,12 @@ void create_fstab()
     write_fstab_root("/system", file);
     write_fstab_root("/sdcard", file);
     write_fstab_root("/sd-ext", file);
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+    write_fstab_root("/emmc", file);
+#endif
+#ifdef BOARD_HAS_WEBTOP
+    write_fstab_root("/osh", file);
+#endif
     fclose(file);
     LOGI("Completed outputting fstab.\n");
 }

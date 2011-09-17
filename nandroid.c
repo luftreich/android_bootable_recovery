@@ -226,6 +226,7 @@ int nandroid_backup(const char* backup_path, const char* sdcard_path, int skip_w
     }
     
     int ret;
+    int sdcard_error = 0;
     struct statfs s;
     if (0 != (ret = statfs(sdcard_path, &s))) {
         ui_print("Unable to stat %s\n", sdcard_path);
@@ -274,12 +275,16 @@ int nandroid_backup(const char* backup_path, const char* sdcard_path, int skip_w
     }
 
     if (0 != ensure_path_mounted("/sdcard"))
+    {
         ui_print("Could not mount /sdcard. Skipping backup of /sdcard.\n");
+        sdcard_error = 1;
+    }
     else
     {
         if (0 != stat("/sdcard/.android_secure", &s))
         {
             ui_print("No /sdcard/.android_secure found. Skipping backup of applications on external storage.\n");
+            sdcard_error = 1;
         }
         else
         {
@@ -287,6 +292,16 @@ int nandroid_backup(const char* backup_path, const char* sdcard_path, int skip_w
                 return ret;
         }
     }
+
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+    if (sdcard_error)
+    {
+        if (0 == ensure_path_mounted("/emmc"))
+            if (0 == stat("/emmc/.android_secure", &s))
+                if (0 != (ret = nandroid_backup_partition_extended(backup_path, "/emmc/.android_secure", 0)))
+                    return ret;
+    }
+#endif
 
     if (0 != (ret = nandroid_backup_partition_extended(backup_path, "/cache", 0)))
         return ret;
@@ -489,8 +504,8 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     ui_show_indeterminate_progress();
     yaffs_files_total = 0;
 
-    char sdcard_path[PATH_MAX] = "/sdcard-ext";
-    if (strstr(backup_path, "/sdcard-ext") == NULL)
+    char sdcard_path[PATH_MAX] = "/emmc";
+    if (strcmp(backup_path, "/sdcard") == 0)
         sprintf(sdcard_path, "/sdcard");
     if (ensure_path_mounted(sdcard_path) != 0) {
         ui_print("Can't mount %s\n", sdcard_path);
@@ -550,7 +565,12 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     }
 
     if (restore_data && 0 != (ret = nandroid_restore_partition_extended(backup_path, "/sdcard/.android_secure", 0)))
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+        if (restore_data && 0 != (ret = nandroid_restore_partition_extended(backup_path, "/emmc/.android_secure", 0)))
+            return ret;
+#else
         return ret;
+#endif
 
     if (restore_cache && 0 != (ret = nandroid_restore_partition_extended(backup_path, "/cache", 0)))
         return ret;

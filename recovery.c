@@ -711,6 +711,9 @@ wipe_data(int confirm) {
         erase_volume("/sd-ext");
     }
     erase_volume("/sdcard/.android_secure");
+#ifdef BOARD_HAS_SDCARD_INTERNAL
+    erase_volume("/emmc/.android_secure");
+#endif
     ui_print("Data wipe complete.\n");
 }
 
@@ -763,10 +766,10 @@ prompt_and_wait() {
                 {
                     switch (chosen_sdcard) {
                         case 0:
-                            sprintf(sdcard_package_file, "/sdcard/update.zip");
+                            sprintf(sdcard_package_file, "/emmc/update.zip");
                             break;
                         case 1:
-                            sprintf(sdcard_package_file, "/sdcard-ext/update.zip");
+                            sprintf(sdcard_package_file, "/sdcard/update.zip");
                             break;
                     }
                     sprintf(confirm, "Yes - Install %s", sdcard_package_file);
