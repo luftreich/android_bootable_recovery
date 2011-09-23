@@ -40,6 +40,7 @@
 #include "flashutils/flashutils.h"
 #include "edify/expr.h"
 #include <libgen.h>
+#include "mtdutils/mtdutils.h"
 
 
 int signature_check_enabled = 1;
@@ -98,11 +99,13 @@ char* INSTALL_MENU_ITEMS[] = {  "choose zip from sdcard",
                                 "apply /sdcard/update.zip",
                                 "toggle signature verification",
                                 "toggle script asserts",
+                                "choose zip from internal sdcard",
                                 NULL };
 #define ITEM_CHOOSE_ZIP       0
 #define ITEM_APPLY_SDCARD     1
 #define ITEM_SIG_CHECK        2
 #define ITEM_ASSERTS          3
+#define ITEM_CHOOSE_ZIP_INT   4
 
 void show_install_update_menu()
 {
@@ -115,6 +118,10 @@ void show_install_update_menu()
                                 "",
                                 NULL
     };
+    
+    if (volume_for_path("/emmc") == NULL)
+        INSTALL_MENU_ITEMS[ITEM_CHOOSE_ZIP_INT] = NULL;
+    
     for (;;)
     {
         int chosen_item = get_menu_selection(headers, INSTALL_MENU_ITEMS, 0, 0);
@@ -152,23 +159,10 @@ void show_install_update_menu()
                 break;
             }
             case ITEM_CHOOSE_ZIP:
-#ifdef BOARD_HAS_SDCARD_INTERNAL
-                chosen_sdcard = show_sdcard_selection_menu();
-                if (chosen_sdcard > -1)
-                {
-                    switch (chosen_sdcard) {
-                        case 0:
-                            show_choose_zip_menu("/emmc");
-                            break;
-                        case 1:
-                            show_choose_zip_menu("/sdcard");
-                            break;
-                    }
-                }
-                else break;
-#else
-                show_choose_zip_menu("/sdcard");
-#endif
+                show_choose_zip_menu("/sdcard/");
+                break;
+            case ITEM_CHOOSE_ZIP_INT:
+                show_choose_zip_menu("/emmc/");
                 break;
             default:
                 return;
@@ -370,9 +364,7 @@ void show_choose_zip_menu(const char* volume)
                                 NULL
     };
 
-    char install_path[PATH_MAX];
-    sprintf(install_path, "%s/", volume);
-    char* file = choose_file_menu(install_path, ".zip", headers);
+    char* file = choose_file_menu(volume, ".zip", headers);
     if (file == NULL)
         return;
     static char* confirm_install  = "Confirm install?";
@@ -562,6 +554,70 @@ int confirm_selection(const char* title, const char* confirm)
 #define MKE2FS_BIN      "/sbin/mke2fs"
 #define TUNE2FS_BIN     "/sbin/tune2fs"
 #define E2FSCK_BIN      "/sbin/e2fsck"
+
+int format_device(const char *device, const char *path, const char *fs_type) {
+    Volume* v = volume_for_path(path);
+    if (v == NULL) {
+        // no /sdcard? let's assume /data/media
+        if (strstr(path, "/sdcard") == path && is_data_media()) {
+            return format_unknown_device(NULL, path, NULL);
+        }
+        // silent failure for sd-ext
+        if (strcmp(path, "/sd-ext") == 0)
+            return -1;
+        LOGE("unknown volume \"%s\"\n", path);
+        return -1;
+    }
+    if (strcmp(fs_type, "ramdisk") == 0) {
+        // you can't format the ramdisk.
+        LOGE("can't format_volume \"%s\"", path);
+        return -1;
+    }
+
+    if (strcmp(v->mount_point, path) != 0) {
+        return format_unknown_device(v->device, path, NULL);
+    }
+
+    if (ensure_path_unmounted(path) != 0) {
+        LOGE("format_volume failed to unmount \"%s\"\n", v->mount_point);
+        return -1;
+    }
+
+    if (strcmp(fs_type, "yaffs2") == 0 || strcmp(fs_type, "mtd") == 0) {
+        mtd_scan_partitions();
+        const MtdPartition* partition = mtd_find_partition_by_name(device);
+        if (partition == NULL) {
+            LOGE("format_volume: no MTD partition \"%s\"\n", device);
+            return -1;
+        }
+
+        MtdWriteContext *write = mtd_write_partition(partition);
+        if (write == NULL) {
+            LOGW("format_volume: can't open MTD \"%s\"\n", device);
+            return -1;
+        } else if (mtd_erase_blocks(write, -1) == (off_t) -1) {
+            LOGW("format_volume: can't erase MTD \"%s\"\n", device);
+            mtd_write_close(write);
+            return -1;
+        } else if (mtd_write_close(write)) {
+            LOGW("format_volume: can't close MTD \"%s\"\n",device);
+            return -1;
+        }
+        return 0;
+    }
+
+    if (strcmp(fs_type, "ext4") == 0) {
+        reset_ext4fs_info();
+        int result = make_ext4fs(device, NULL, NULL, 0, 0, 0);
+        if (result != 0) {
+            LOGE("format_volume: make_extf4fs failed on %s\n", device);
+            return -1;
+        }
+        return 0;
+    }
+
+    return format_unknown_device(device, path, fs_type);
+}
 
 int format_unknown_device(const char *device, const char* path, const char *fs_type)
 {
@@ -882,7 +938,32 @@ int run_and_remove_extendedcommand()
         ui_print("Timed out waiting for SD card... continuing anyways.");
     }
 
+    ui_print("Verifying SD Card marker...\n");
+    struct stat st;
+    if (stat("/sdcard/clockworkmod/.salted_hash", &st) != 0) {
+        ui_print("SD Card marker not found...\n");
+        if (volume_for_path("/emmc") != NULL) {
+            ui_print("Checking Internal SD Card marker...\n");
+            ensure_path_unmounted("/sdcard");
+            if (ensure_path_mounted_at_mount_point("/emmc", "/sdcard") != 0) {
+                ui_print("Internal SD Card marker not found... continuing anyways.\n");
+                // unmount everything, and remount as normal
+                ensure_path_unmounted("/emmc");
+                ensure_path_unmounted("/sdcard");
+
+                ensure_path_mounted("/sdcard");
+            }
+        }
+    }
+
     sprintf(tmp, "/tmp/%s", basename(EXTENDEDCOMMAND_SCRIPT));
+    int ret;
+#ifdef I_AM_KOUSH
+    if (0 != (ret = before_run_script(tmp))) {
+        ui_print("Error processing ROM Manager script. Please verify that you are performing the backup, restore, or ROM installation from ROM Manager v4.4.0.0 or higher.\n");
+        return ret;
+    }
+#endif
     return run_script(tmp);
 }
 
@@ -1193,9 +1274,9 @@ void show_advanced_menu()
                     __system("rm -r /data/dalvik-cache");
                     __system("rm -r /cache/dalvik-cache");
                     __system("rm -r /sd-ext/dalvik-cache");
+                    ui_print("Dalvik Cache wiped.\n");
                 }
                 ensure_path_unmounted("/data");
-                ui_print("Dalvik Cache wiped.\n");
                 break;
             }
             case 2:

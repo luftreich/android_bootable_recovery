@@ -19,8 +19,12 @@ LOCAL_SRC_FILES := \
     extendedcommands.c \
     nandroid.c \
     ../../system/core/toolbox/reboot.c \
+    firmware.c \
     edifyscripting.c \
     setprop.c
+
+ADDITIONAL_RECOVERY_FILES := $(shell echo $$ADDITIONAL_RECOVERY_FILES)
+LOCAL_SRC_FILES += $(ADDITIONAL_RECOVERY_FILES)
 
 LOCAL_MODULE := recovery
 
@@ -28,21 +32,22 @@ LOCAL_FORCE_STATIC_EXECUTABLE := true
 
 ifdef I_AM_KOUSH
 RECOVERY_NAME := ClockworkMod Recovery
+LOCAL_CFLAGS += -DI_AM_KOUSH
 else
 RECOVERY_NAME := CWM-based Recovery
 endif
 
 ifdef ATRIX_BUILD
-ATRIX_VERSION := -atrix3.3
+ATRIX_VERSION := -atrix4
 else
 ifdef PHOTON_BUILD
-ATRIX_VERSION := -photon1.3
+ATRIX_VERSION := -photon2
 else
 ATRIX_VERSION :=
 endif
 endif
 
-RECOVERY_VERSION := $(RECOVERY_NAME) v4.0.1.5$(ATRIX_VERSION)
+RECOVERY_VERSION := $(RECOVERY_NAME) v5.0.2.3$(ATRIX_VERSION)
 
 LOCAL_CFLAGS += -DRECOVERY_VERSION="$(RECOVERY_VERSION)"
 RECOVERY_API_VERSION := 2
