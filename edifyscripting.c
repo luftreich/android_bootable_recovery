@@ -245,7 +245,7 @@ Value* MountFn(const char* name, State* state, int argc, Expr* argv[]) {
     if (ReadArgs(state, argv, 1, &path) < 0) {
         return NULL;
     }
-    
+
     if (0 != ensure_path_mounted(path))
         return StringValue(strdup(""));
 
