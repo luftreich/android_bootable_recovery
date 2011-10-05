@@ -1114,6 +1114,7 @@ void show_advanced_menu()
                             "Show log",
 #ifndef BOARD_HAS_SMALL_RECOVERY
                             "Partition External SD Card",
+                            "Upgrade a partition to ext4",
                             "Fix Permissions",
 #ifdef BOARD_HAS_SDCARD_INTERNAL
 #ifndef BOARD_HAS_INTERNAL_PARTITIONS
@@ -1228,6 +1229,8 @@ void show_advanced_menu()
                 break;
             }
             case 7:
+                break;
+            case 8:
             {
                 ensure_path_mounted("/system");
                 ensure_path_mounted("/data");
@@ -1236,7 +1239,7 @@ void show_advanced_menu()
                 ui_print("Done!\n");
                 break;
             }
-            case 8:
+            case 9:
             {
                 static char* ext_sizes[] = { "0M",
                                              "128M",

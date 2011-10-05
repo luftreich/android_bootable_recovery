@@ -47,7 +47,7 @@ ATRIX_VERSION :=
 endif
 endif
 
-RECOVERY_VERSION := $(RECOVERY_NAME) v5.0.2.3$(ATRIX_VERSION)
+RECOVERY_VERSION := $(RECOVERY_NAME) v5.0.2.6$(ATRIX_VERSION)
 
 LOCAL_CFLAGS += -DRECOVERY_VERSION="$(RECOVERY_VERSION)"
 RECOVERY_API_VERSION := 2
@@ -114,7 +114,7 @@ LOCAL_C_INCLUDES += system/extras/ext4_utils
 
 include $(BUILD_EXECUTABLE)
 
-RECOVERY_LINKS := edify busybox flash_image dump_image mkyaffs2image unyaffs erase_image nandroid reboot volume
+RECOVERY_LINKS := edify busybox flash_image dump_image mkyaffs2image unyaffs erase_image nandroid reboot volume setprop
 
 # nc is provided by external/netcat
 RECOVERY_SYMLINKS := $(addprefix $(TARGET_RECOVERY_ROOT_OUT)/sbin/,$(RECOVERY_LINKS))
