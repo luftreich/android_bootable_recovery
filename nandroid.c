@@ -235,13 +235,14 @@ int nandroid_backup(const char* backup_path, const char* sdcard_path, int skip_w
         return 1;
     }
     
+    Volume* volume = volume_for_path(backup_path);
+    if (NULL == volume)
+        return print_and_error("Unable to find volume for backup path.\n");
     int ret;
     int sdcard_error = 0;
     struct statfs s;
-    if (0 != (ret = statfs(sdcard_path, &s))) {
-        ui_print("Unable to stat %s\n", sdcard_path);
-        return 1;
-    }
+    if (0 != (ret = statfs(volume->mount_point, &s)))
+        return print_and_error("Unable to stat backup path.\n");
     uint64_t bavail = s.f_bavail;
     uint64_t bsize = s.f_bsize;
     uint64_t sdcard_free = bavail * bsize;
