@@ -747,37 +747,38 @@ void show_partition_menu()
 
     string options[255];
 
-    if(!device_volumes)
-		return;
+    if (!device_volumes)
+        return;
 
-		mountable_volumes = 0;
-		formatable_volumes = 0;
+    mountable_volumes = 0;
+    formatable_volumes = 0;
 
-		mount_menue = malloc(num_volumes * sizeof(MountMenuEntry));
-		format_menue = malloc(num_volumes * sizeof(FormatMenuEntry));
+    mount_menue = malloc(num_volumes * sizeof(MountMenuEntry));
+    format_menue = malloc(num_volumes * sizeof(FormatMenuEntry));
 
-		for (i = 0; i < num_volumes; ++i) {
-			Volume* v = &device_volumes[i];
-			if(strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) != 0 && strcmp("emmc", v->fs_type) != 0 && strcmp("bml", v->fs_type) != 0)
-			{
-				sprintf(&mount_menue[mountable_volumes].mount, "mount %s", v->mount_point);
-				sprintf(&mount_menue[mountable_volumes].unmount, "unmount %s", v->mount_point);
-				mount_menue[mountable_volumes].v = &device_volumes[i];
-				++mountable_volumes;
-				if (is_safe_to_format(v->mount_point)) {
-					sprintf(&format_menue[formatable_volumes].txt, "format %s", v->mount_point);
-					format_menue[formatable_volumes].v = &device_volumes[i];
-					++formatable_volumes;
-				}
-		    }
-		    else if (strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) == 0 && is_safe_to_format(v->mount_point))
-		    {
-				sprintf(&format_menue[formatable_volumes].txt, "format %s", v->mount_point);
-				format_menue[formatable_volumes].v = &device_volumes[i];
-				++formatable_volumes;
-			}
-		}
-
+    for (i = 0; i < num_volumes; ++i)
+    {
+        Volume* v = &device_volumes[i];
+        if (strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) != 0 && strcmp("emmc", v->fs_type) != 0 && strcmp("bml", v->fs_type) != 0)
+        {
+            sprintf(&mount_menue[mountable_volumes].mount, "mount %s", v->mount_point);
+            sprintf(&mount_menue[mountable_volumes].unmount, "unmount %s", v->mount_point);
+            mount_menue[mountable_volumes].v = &device_volumes[i];
+            ++mountable_volumes;
+            if (is_safe_to_format(v->mount_point))
+            {
+                sprintf(&format_menue[formatable_volumes].txt, "format %s", v->mount_point);
+                format_menue[formatable_volumes].v = &device_volumes[i];
+                ++formatable_volumes;
+            }
+        }
+        else if (strcmp("ramdisk", v->fs_type) != 0 && strcmp("mtd", v->fs_type) == 0 && is_safe_to_format(v->mount_point))
+        {
+            sprintf(&format_menue[formatable_volumes].txt, "format %s", v->mount_point);
+            format_menue[formatable_volumes].v = &device_volumes[i];
+            ++formatable_volumes;
+        }
+    }
 
     static char* confirm_format  = "Confirm format?";
     static char* confirm = "Yes - Format";
@@ -785,23 +786,21 @@ void show_partition_menu()
 
     for (;;)
     {
+        for (i = 0; i < mountable_volumes; i++)
+        {
+            MountMenuEntry* e = &mount_menue[i];
+            Volume* v = e->v;
+            if (is_path_mounted(v->mount_point))
+                options[i] = e->unmount;
+            else
+                options[i] = e->mount;
+        }
 
-		for (i = 0; i < mountable_volumes; i++)
-		{
-			MountMenuEntry* e = &mount_menue[i];
-			Volume* v = e->v;
-			if(is_path_mounted(v->mount_point))
-				options[i] = e->unmount;
-			else
-				options[i] = e->mount;
-		}
-
-		for (i = 0; i < formatable_volumes; i++)
-		{
-			FormatMenuEntry* e = &format_menue[i];
-
-			options[mountable_volumes+i] = e->txt;
-		}
+        for (i = 0; i < formatable_volumes; i++)
+        {
+            FormatMenuEntry* e = &format_menue[i];
+            options[mountable_volumes+i] = e->txt;
+        }
 
         options[mountable_volumes+formatable_volumes] = "mount USB storage";
         options[mountable_volumes+formatable_volumes + 1] = NULL;
@@ -815,7 +814,7 @@ void show_partition_menu()
         }
         else if (chosen_item < mountable_volumes)
         {
-			MountMenuEntry* e = &mount_menue[chosen_item];
+            MountMenuEntry* e = &mount_menue[chosen_item];
             Volume* v = e->v;
 
             if (is_path_mounted(v->mount_point))
@@ -849,7 +848,6 @@ void show_partition_menu()
 
     free(mount_menue);
     free(format_menue);
-
 }
 
 void show_nandroid_advanced_restore_menu(const char* volume)
