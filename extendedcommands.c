@@ -850,6 +850,112 @@ void show_partition_menu()
     free(format_menue);
 }
 
+void show_partition_upgrade_menu()
+{
+    static char* headers[] = {  "ext4 Upgrade Menu",
+                                "",
+                                NULL
+    };
+
+    static FormatMenuEntry* format_menue = NULL;
+
+    typedef char* string;
+
+    char cmd[PATH_MAX];
+    int i, formatable_volumes;
+    int num_volumes;
+    Volume* device_volumes;
+
+    num_volumes = get_num_volumes();
+    device_volumes = get_device_volumes();
+
+    string options[255];
+
+    if (!device_volumes)
+        return;
+
+    formatable_volumes = 0;
+
+    format_menue = malloc(num_volumes * sizeof(FormatMenuEntry));
+
+    for (i = 0; i < num_volumes; ++i)
+    {
+        Volume* v = &device_volumes[i];
+        if (strcmp("ext3", v->fs_type) == 0 || strcmp("ext3", v->fs_type2) == 0 || strcmp("ext4", v->fs_type) == 0 || strcmp("ext4", v->fs_type2) == 0)
+        {
+            if (is_safe_to_format(v->mount_point))
+            {
+                sprintf(&format_menue[formatable_volumes].txt, "upgrade %s", v->mount_point);
+                format_menue[formatable_volumes].v = &device_volumes[i];
+                ++formatable_volumes;
+            }
+        }
+    }
+
+    static char* confirm_format  = "Confirm ext4 upgrade?";
+    static char* confirm = "Yes - Upgrade";
+    char confirm_string[255];
+
+    for (;;)
+    {
+        for (i = 0; i < formatable_volumes; i++)
+        {
+            FormatMenuEntry* e = &format_menue[i];
+            options[i] = e->txt;
+        }
+
+        options[formatable_volumes] = NULL;
+
+        int chosen_item = get_menu_selection(headers, &options, 0, 0);
+        if (chosen_item == GO_BACK)
+            break;
+        if (chosen_item < formatable_volumes)
+        {
+            FormatMenuEntry* e = &format_menue[chosen_item];
+            Volume* v = e->v;
+
+            sprintf(confirm_string, "%s - %s", v->mount_point, confirm_format);
+
+            if (!confirm_selection(confirm_string, confirm))
+                continue;
+            ui_print("Upgrading %s to ext4...\n", v->mount_point);
+            if (0 != ensure_path_unmounted(v->mount_point))
+            {
+                ui_print("Error unmounting %s!\n", v->mount_point);
+                continue;
+            }
+            sprintf(cmd, "/sbin/e2fsck -p %s", v->device);
+            if (0 != __system(cmd))
+            {
+                ui_print("Uncorrectable filesystem error on %s!\n", v->device);
+                continue;
+            }
+            sprintf(cmd, "/sbin/tune2fs -c0 -i0 -j %s", v->device);
+            if (0 != __system(cmd))
+            {
+                ui_print("Error adding journal to %s!\n", v->device);
+                continue;
+            }
+            sprintf(cmd, "/sbin/tune2fs -O extents,uninit_bg,dir_index %s", v->device);
+            if (0 != __system(cmd))
+            {
+                ui_print("Error setting ext4 options on %s!\n", v->device);
+                continue;
+            }
+            sprintf(cmd, "/sbin/e2fsck -fpDC0 %s", v->device);
+            if (0 != __system(cmd))
+            {
+                ui_print("Error upgrading %s to ext4!\n", v->device);
+                continue;
+            }
+            else
+                ui_print("Done.\n");
+        }
+    }
+
+    free(format_menue);
+}
+
 void show_nandroid_advanced_restore_menu(const char* volume)
 {
     if (ensure_path_mounted(volume) != 0) {
@@ -1240,6 +1346,7 @@ void show_advanced_menu()
                 break;
             }
             case 7:
+                show_partition_upgrade_menu();
                 break;
             case 8:
             {

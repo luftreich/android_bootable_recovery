@@ -26,6 +26,9 @@ void
 show_partition_menu();
 
 void
+show_partition_upgrade_menu();
+
+void
 show_choose_zip_menu(const char* volume);
 
 int
