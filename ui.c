@@ -572,7 +572,7 @@ static int input_callback(int fd, short revents, void *data)
     }
 
     if (ev.value > 0 && device_reboot_now(key_pressed, ev.code)) {
-        android_reboot(ANDROID_RB_RESTART2, 0, 0);
+        android_reboot(ANDROID_RB_RESTART2, 0, "now");
     }
 
     return 0;
