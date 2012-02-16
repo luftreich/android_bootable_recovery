@@ -920,7 +920,7 @@ main(int argc, char **argv) {
     sync();
     if(!poweroff) {
         ui_print("Rebooting...\n");
-        android_reboot(ANDROID_RB_RESTART, 0, 0);
+        android_reboot(ANDROID_RB_RESTART2, 0, 0);
     }
     else {
         ui_print("Shutting down...\n");
