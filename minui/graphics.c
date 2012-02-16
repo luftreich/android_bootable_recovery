@@ -32,6 +32,8 @@
 
 #ifdef BOARD_USE_CUSTOM_RECOVERY_FONT
 #include BOARD_USE_CUSTOM_RECOVERY_FONT
+#elif defined(BOARD_LDPI_RECOVERY)
+#include "font_7x16.h"
 #else
 #include "font_10x18.h"
 #endif
