@@ -29,7 +29,7 @@
 #include <unistd.h>
 
 #include "common.h"
-#include <cutils/android_reboot.h>
+#include <sys/reboot.h>
 #include "minui/minui.h"
 #include "recovery_ui.h"
 
@@ -572,7 +572,7 @@ static int input_callback(int fd, short revents, void *data)
     }
 
     if (ev.value > 0 && device_reboot_now(key_pressed, ev.code)) {
-        android_reboot(ANDROID_RB_RESTART2, 0, "now");
+        reboot(RB_AUTOBOOT);
     }
 
     return 0;
