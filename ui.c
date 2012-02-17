@@ -470,7 +470,7 @@ static int input_callback(int fd, short revents, void *data)
                 //they lifted in the touch panel region
                 if (touch_x < keywidth) {
                     //back button
-                    ev.code = KEY_BACK;
+                    ev.code = KEY_DOWN;
                     reset_gestures();
                 } else if (touch_x < keywidth*2) {
                     //up button
@@ -478,7 +478,7 @@ static int input_callback(int fd, short revents, void *data)
                     reset_gestures();
                 } else if (touch_x < keywidth*3) {
                     //down button
-                    ev.code = KEY_DOWN;
+                    ev.code = KEY_BACK;
                     reset_gestures();
                 } else {
                     //enter key
@@ -975,7 +975,7 @@ int input_buttons()
 
     if (touch_x < 173) {
         //back button
-        final_code = KEY_BACK;
+        final_code = KEY_DOWN;
         start_draw = 0;
         end_draw = 172;
     } else if (touch_x < 360) {
@@ -985,7 +985,7 @@ int input_buttons()
         end_draw = 359;
     } else if (touch_x < 550) {
         //down button
-        final_code = KEY_DOWN;
+        final_code = KEY_BACK;
         start_draw = 360;
         end_draw = 549;
     } else {
