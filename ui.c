@@ -41,11 +41,11 @@ static int gShowBackButton = 1;
 static int gShowBackButton = 0;
 #endif
 
-#define MAX_COLS 252
-#define MAX_ROWS 124
+#define MAX_COLS 96
+#define MAX_ROWS 32
 
-#define MENU_MAX_COLS 222
-#define MENU_MAX_ROWS 250
+#define MENU_MAX_COLS 64
+#define MENU_MAX_ROWS 246
 
 #define MIN_LOG_ROWS 3
 

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/reboot.h>
+#include <reboot/reboot.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
@@ -42,7 +43,6 @@
 #include <libgen.h>
 #include "mtdutils/mtdutils.h"
 #include "bmlutils/bmlutils.h"
-#include "cutils/android_reboot.h"
 
 
 int signature_check_enabled = 1;
@@ -514,7 +514,7 @@ int format_device(const char *device, const char *path, const char *fs_type) {
             length = v->length;
         }
         reset_ext4fs_info();
-        int result = make_ext4fs(device, length);
+        int result = make_ext4fs(device, NULL, NULL, 0, 0, 0);
         if (result != 0) {
             LOGE("format_volume: make_extf4fs failed on %s\n", device);
             return -1;
@@ -929,7 +929,7 @@ void show_advanced_menu()
         {
             case 0:
             {
-                android_reboot(ANDROID_RB_RESTART2, 0, "recovery");
+                reboot_wrapper("recovery");
                 break;
             }
             case 1:
