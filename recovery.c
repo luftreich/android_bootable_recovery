@@ -34,7 +34,7 @@
 #include "bootloader.h"
 #include "common.h"
 #include "cutils/properties.h"
-#include <sys/reboot.h>
+#include "cutils/android_reboot.h"
 #include "install.h"
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
@@ -918,12 +918,14 @@ main(int argc, char **argv) {
     finish_recovery(send_intent);
 
     sync();
-    if(!poweroff)
+    if(!poweroff) {
         ui_print("Rebooting...\n");
-    else
+        android_reboot(ANDROID_RB_RESTART, 0, 0);
+    }
+    else {
         ui_print("Shutting down...\n");
-    sync();
-    reboot((!poweroff) ? RB_AUTOBOOT : RB_POWER_OFF);
+        android_reboot(ANDROID_RB_POWEROFF, 0, 0);
+    }
     return EXIT_SUCCESS;
 }
 
