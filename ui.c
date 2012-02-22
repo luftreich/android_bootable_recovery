@@ -45,7 +45,7 @@ static int gShowBackButton = 0;
 #define MAX_ROWS 32
 
 #define MENU_MAX_COLS 64
-#define MENU_MAX_ROWS 246
+#define MENU_MAX_ROWS 250
 
 #define MIN_LOG_ROWS 3
 
@@ -425,6 +425,7 @@ static int input_callback(int fd, short revents, void *data)
     struct input_event ev;
     int ret;
     int fake_key = 0;
+    gr_surface surface = gVirtualKeys;
 
     ret = ev_get_input(fd, revents, &ev);
     if (ret)
@@ -465,19 +466,20 @@ static int input_callback(int fd, short revents, void *data)
     } else if (ev.type == 3 && ev.code == 48 && ev.value == 0) {
             //finger lifted! lets run with this
             ev.type = EV_KEY; //touch panel support!!!
-            int keywidth = gr_fb_width() / 4;
-            if (touch_y > gr_fb_height() - 64 && touch_x > 0) {
+            int keywidth = gr_get_width(surface) / 4;
+            int keyoffset = (gr_fb_width() - gr_get_width(surface)) / 2;
+            if (touch_y > (gr_fb_height() - gr_get_height(surface)) && touch_x > 0) {
                 //they lifted in the touch panel region
-                if (touch_x < keywidth) {
-                    //back button
+                if (touch_x < (keywidth + keyoffset)) {
+                    //down button
                     ev.code = KEY_DOWN;
                     reset_gestures();
-                } else if (touch_x < keywidth*2) {
+                } else if (touch_x < ((keywidth * 2) + keyoffset)) {
                     //up button
                     ev.code = KEY_UP;
                     reset_gestures();
-                } else if (touch_x < keywidth*3) {
-                    //down button
+                } else if (touch_x < ((keywidth * 3) + keyoffset)) {
+                    //back button
                     ev.code = KEY_BACK;
                     reset_gestures();
                 } else {
@@ -504,18 +506,12 @@ static int input_callback(int fd, short revents, void *data)
         if (old_x != 0)
             diff_x += touch_x - old_x;
 
-        if (touch_y < gr_fb_height() - 164) {
-            if (diff_x > 100) {
-                //printf("Gesture forward generated\n");
+        if (touch_y < (gr_fb_height() - gr_get_height(surface))) {
+            if (diff_x > (gr_fb_width() / 4)) {
                 slide_right = 1;
-                //ev.code = KEY_ENTER;
-                //ev.type = EV_KEY;
                 reset_gestures();
-            } else if (diff_x < -100) {
-                //printf("Gesture back generated\n");
+            } else if (diff_x < ((gr_fb_width() / 4) * -1)) {
                 slide_left = 1;
-                //ev.code = KEY_BACK;
-                //ev.type = EV_KEY;
                 reset_gestures();
             }
         } else {
@@ -528,14 +524,12 @@ static int input_callback(int fd, short revents, void *data)
         if (old_y != 0)
             diff_y += touch_y - old_y;
 
-        if (touch_y < gr_fb_height() - 196) {
-            if (diff_y > 25) {
-                //printf("Gesture Down generated\n");
+        if (touch_y < (gr_fb_height() - gr_get_height(surface))) {
+            if (diff_y > (gr_fb_height() / 8)) {
                 ev.code = KEY_DOWN;
                 ev.type = EV_KEY;
                 reset_gestures();
-            } else if (diff_y < -25) {
-                //printf("Gesture Up generated\n");
+            } else if (diff_y < ((gr_fb_height() / 8) * -1)) {
                 ev.code = KEY_UP;
                 ev.type = EV_KEY;
                 reset_gestures();
@@ -972,36 +966,39 @@ int input_buttons()
     int final_code = 0;
     int start_draw = 0;
     int end_draw = 0;
+    gr_surface surface = gVirtualKeys;
 
-    if (touch_x < 173) {
-        //back button
+    int keywidth = gr_get_width(surface) / 4;
+    int keyoffset = (gr_fb_width() - gr_get_width(surface)) / 2;
+    if (touch_x < (keywidth + keyoffset + 1)) {
+        //down button
         final_code = KEY_DOWN;
-        start_draw = 0;
-        end_draw = 172;
-    } else if (touch_x < 360) {
+        start_draw = keyoffset;
+        end_draw = keywidth + keyoffset;
+    } else if (touch_x < ((keywidth * 2) + keyoffset + 1)) {
         //up button
         final_code = KEY_UP;
-        start_draw = 173;
-        end_draw = 359;
-    } else if (touch_x < 550) {
-        //down button
+        start_draw = keywidth + keyoffset + 1;
+        end_draw = (keywidth * 2) + keyoffset;
+    } else if (touch_x < ((keywidth * 3) + keyoffset + 1)) {
+        //back button
         final_code = KEY_BACK;
-        start_draw = 360;
-        end_draw = 549;
+        start_draw = (keywidth * 2) + keyoffset + 1;
+        end_draw = (keywidth * 3) + keyoffset;
     } else {
         //enter key
         final_code = KEY_ENTER;
-        start_draw = 550;
-        end_draw = gr_fb_width();
+        start_draw = (keywidth * 3) + keyoffset + 1;
+        end_draw = (keywidth * 4) + keyoffset;
     }
 
-    if (touch_y > gr_fb_width() - 96 && touch_x > 0) {
+    if (touch_y > (gr_fb_height() - gr_get_height(surface)) && touch_x > 0) {
         pthread_mutex_lock(&gUpdateMutex);
         gr_color(0, 0, 0, 255);     // clear old touch points
-        gr_fill(0, gr_fb_height()-98, start_draw-1, gr_fb_height()-96);
-        gr_fill(end_draw+1, gr_fb_height()-98, gr_fb_width(), gr_fb_height()-96);
+        gr_fill(0, gr_fb_height()-gr_get_height(surface)-2, start_draw-1, gr_fb_height()-gr_get_height(surface));
+        gr_fill(end_draw+1, gr_fb_height()-gr_get_height(surface)-2, gr_fb_width(), gr_fb_height()-gr_get_height(surface));
         gr_color(MENU_TEXT_COLOR);
-        gr_fill(start_draw, gr_fb_height()-98, end_draw, gr_fb_height()-96);
+        gr_fill(start_draw, gr_fb_height()-gr_get_height(surface)-2, end_draw, gr_fb_height()-gr_get_height(surface));
         gr_flip();
         pthread_mutex_unlock(&gUpdateMutex);
     }
