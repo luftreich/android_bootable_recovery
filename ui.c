@@ -254,7 +254,8 @@ static void draw_screen_locked(void)
         gr_color(0, 0, 0, 160);
         gr_fill(0, 0, gr_fb_width(), gr_fb_height());
 
-        int total_rows = gr_fb_height() / CHAR_HEIGHT;
+        gr_surface surface = gVirtualKeys;
+        int total_rows = (gr_fb_height() / CHAR_HEIGHT) - (gr_get_height(surface) / CHAR_HEIGHT) - 1;
         int i = 0;
         int j = 0;
         int offset = 0;         // offset of separating bar under menus
@@ -588,12 +589,14 @@ void ui_init(void)
     gr_init();
     ev_init(input_callback, NULL);
 
+    gr_surface surface = gVirtualKeys;
     text_col = text_row = 0;
     text_rows = gr_fb_height() / CHAR_HEIGHT;
     max_menu_rows = text_rows - MIN_LOG_ROWS;
     if (max_menu_rows > MENU_MAX_ROWS)
         max_menu_rows = MENU_MAX_ROWS;
     if (text_rows > MAX_ROWS) text_rows = MAX_ROWS;
+    text_rows = text_rows - (gr_get_height(surface) / CHAR_HEIGHT) - 1;
     text_top = 1;
 
     text_cols = gr_fb_width() / CHAR_WIDTH;
@@ -985,7 +988,7 @@ int input_buttons()
         final_code = KEY_BACK;
         start_draw = (keywidth * 2) + keyoffset + 1;
         end_draw = (keywidth * 3) + keyoffset;
-    } else {
+    } else if (touch_x < ((keywidth * 4) + keyoffset + 1)) {
         //enter key
         final_code = KEY_ENTER;
         start_draw = (keywidth * 3) + keyoffset + 1;
