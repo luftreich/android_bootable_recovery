@@ -1,7 +1,8 @@
 #!/sbin/sh
 
 # do logging, if not excluded with -x
-LOGFILE="/data/sdparted.log"
+LOGFILE="/cache/recovery/sdparted.log"
+[ "$1" != "-x" ] && mkdir -p `dirname "$LOGFILE"`
 [ "$1" != "-x" ] && echo "$0" "$@" >> "$LOGFILE" && "$0" -x "$@" 2>&1 | tee -a "$LOGFILE" && exit
 shift
 
@@ -301,7 +302,7 @@ ShowCardInfo() {
 		echo
 		parted "$SDPATH" print
 		echo
-		echo "script log is located @ /data/sdparted.log"
+		echo "script log is located @ $LOGFILE"
 		exit 0
 	else
 		echo
@@ -546,13 +547,13 @@ TTISMSDOS=
 
 SDSIZE=
 SDSIZEMB=
-SDINFO=$(cat /etc/fstab | grep /sdcard | awk '{print $1}')
-if [ -L "$SDINFO" ]
-then
-	SDPATH=$(ls -l $SDINFO | awk '{print $11}')
-else
-	SDPATH=$SDINFO
-fi
+#SDINFO=$(cat /etc/fstab | grep /sdcard | awk '{print $1}')
+#if [ -L "$SDINFO" ]
+#then
+#	SDPATH=$(ls -l $SDINFO | awk '{print $11}')
+#else
+#	SDPATH=$SDINFO
+#fi
 # we may now have an SDPATH, let's make sure its on mmcblkX or mmcblkXp1
 CHECK_SDPATH1=$(echo $SDPATH | grep mmcblk.$)
 CHECK_SDPATH2=$(echo $SDPATH | grep mmcblk.p1$)
