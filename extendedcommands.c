@@ -363,22 +363,30 @@ void show_nandroid_restore_menu(const char* path)
 
 void show_mount_usb_storage_menu()
 {
-    int fd;
+    int fd, fd2;
     Volume *vol = volume_for_path("/sdcard");
     if ((fd = open(BOARD_UMS_LUNFILE, O_WRONLY)) < 0) {
         LOGE("Unable to open ums lunfile (%s)", strerror(errno));
-        return -1;
     }
-
-    if ((write(fd, vol->device, strlen(vol->device)) < 0) &&
+    else if ((write(fd, vol->device, strlen(vol->device)) < 0) &&
         (!vol->device2 || (write(fd, vol->device, strlen(vol->device2)) < 0))) {
         LOGE("Unable to write to ums lunfile (%s)", strerror(errno));
         close(fd);
-        return -1;
     }
+#ifdef BOARD_UMS_LUNFILE2
+    vol = volume_for_path("/emmc");
+    if ((fd2 = open(BOARD_UMS_LUNFILE2, O_WRONLY)) < 0) {
+        LOGE("Unable to open ums lunfile for secondary SD card (%s)", strerror(errno));
+    }
+    else if ((write(fd2, vol->device, strlen(vol->device)) < 0) &&
+        (!vol->device2 || (write(fd2, vol->device, strlen(vol->device2)) < 0))) {
+        LOGE("Unable to write to ums lunfile for secondary SD card (%s)", strerror(errno));
+        close(fd2);
+    }
+#endif
     static char* headers[] = {  "USB Mass Storage device",
-                                "Leaving this menu unmount",
-                                "your SD card from your PC.",
+                                "Leaving this menu unmounts",
+                                "all SD cards from your PC.",
                                 "",
                                 NULL
     };
@@ -392,17 +400,23 @@ void show_mount_usb_storage_menu()
             break;
     }
 
+    char ch = 0;
     if ((fd = open(BOARD_UMS_LUNFILE, O_WRONLY)) < 0) {
         LOGE("Unable to open ums lunfile (%s)", strerror(errno));
-        return -1;
     }
-
-    char ch = 0;
-    if (write(fd, &ch, 1) < 0) {
+    else if (write(fd, &ch, 1) < 0) {
         LOGE("Unable to write to ums lunfile (%s)", strerror(errno));
         close(fd);
-        return -1;
     }
+#ifdef BOARD_UMS_LUNFILE2
+    if ((fd2 = open(BOARD_UMS_LUNFILE2, O_WRONLY)) < 0) {
+        LOGE("Unable to open ums lunfile for secondary SD card (%s)", strerror(errno));
+    }
+    else if (write(fd2, &ch, 1) < 0) {
+        LOGE("Unable to write to ums lunfile for secondary SD card (%s)", strerror(errno));
+        close(fd2);
+    }
+#endif
 }
 
 int confirm_selection(const char* title, const char* confirm)
