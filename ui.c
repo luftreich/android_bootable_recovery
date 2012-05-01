@@ -591,12 +591,11 @@ void ui_init(void)
 
     gr_surface surface = gVirtualKeys;
     text_col = text_row = 0;
-    text_rows = gr_fb_height() / CHAR_HEIGHT;
+    text_rows = (gr_fb_height() / CHAR_HEIGHT) - (gr_get_height(surface) / CHAR_HEIGHT) - 1;
     max_menu_rows = text_rows - MIN_LOG_ROWS;
     if (max_menu_rows > MENU_MAX_ROWS)
         max_menu_rows = MENU_MAX_ROWS;
     if (text_rows > MAX_ROWS) text_rows = MAX_ROWS;
-    text_rows = text_rows - (gr_get_height(surface) / CHAR_HEIGHT) - 1;
     text_top = 1;
 
     text_cols = gr_fb_width() / CHAR_WIDTH;
@@ -902,7 +901,7 @@ static int usb_connected() {
 
     char buf[12]; buf[11] = NULL;
     /* USB is connected if android_usb state is CONNECTED or CONFIGURED */
-    int connected = (read(fd, &buf, 11) == 11) && (!strcmp(buf, "USB_STATE_C"));
+    int connected = (read(fd, &buf, 11) == 11) && (strcmp(buf, "USB_STATE_C") == 0);
     if (close(fd) < 0) {
         printf("failed to close /sys/devices/platform/msm_hsusb/gadget/usb_state: %s\n",
                strerror(errno));

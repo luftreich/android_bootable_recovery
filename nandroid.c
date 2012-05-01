@@ -72,10 +72,9 @@ static void yaffs_callback(const char* filename)
     const char* justfile = basename(filename);
     char tmp[PATH_MAX];
     strncpy(tmp, justfile, PATH_MAX);
+    tmp[PATH_MAX - 1] = NULL;
     if (tmp[strlen(tmp) - 1] == '\n')
         tmp[strlen(tmp) - 1] = NULL;
-    else
-        tmp[PATH_MAX - 1] = NULL;
     if (strlen(tmp) < 30)
         ui_print("%s", tmp);
     yaffs_files_count++;
