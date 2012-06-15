@@ -85,12 +85,6 @@ static void yaffs_callback(const char* filename)
         return;
     const char* justfile = basename(filename);
     char tmp[PATH_MAX];
-    strncpy(tmp, justfile, PATH_MAX);
-    tmp[PATH_MAX - 1] = NULL;
-    if (tmp[strlen(tmp) - 1] == '\n')
-        tmp[strlen(tmp) - 1] = NULL;
-    if (strlen(tmp) < 30)
-        ui_print("%s", tmp);
     struct timeval curtime;
     gettimeofday(&curtime,NULL);
     /*
@@ -100,20 +94,20 @@ static void yaffs_callback(const char* filename)
      * too much CPU time.
      */
     yaffs_files_count++;
-    if(delta_milliseconds(lastupdate,curtime) > NANDROID_UPDATE_INTERVAL)
-      {
-        strcpy(tmp, justfile);
+    if (delta_milliseconds(lastupdate,curtime) > NANDROID_UPDATE_INTERVAL) {
+        strncpy(tmp, justfile, PATH_MAX);
+        tmp[PATH_MAX - 1] = NULL;
         if (tmp[strlen(tmp) - 1] == '\n')
-          tmp[strlen(tmp) - 1] = NULL;
+            tmp[strlen(tmp) - 1] = NULL;
         if (strlen(tmp) < 30) {
-	  lastupdate = curtime;
-          ui_print("%s", tmp);
-	}
+            lastupdate = curtime;
+            ui_print("%s", tmp);
+        }
 
         if (yaffs_files_total != 0)
-          ui_set_progress((float)yaffs_files_count / (float)yaffs_files_total);
+            ui_set_progress((float)yaffs_files_count / (float)yaffs_files_total);
         ui_reset_text_col();
-      }
+    }
 }
 
 static void compute_directory_stats(const char* directory)
